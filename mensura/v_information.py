@@ -4,32 +4,35 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 
-def compute_approximate_v_information(feature: np.ndarray, z: np.ndarray) -> float:
+def compute_approximate_v_information(
+    intermediate_feature: np.ndarray, z: np.ndarray
+) -> float:
     """Compute approximate v-information for a specific atom by using an assumption that
     predictive family V as a class of linear probes with Gaussian prior.
 
     For details, please check "C Complexity measure" section of the original paper.
 
     Args:
-        feature (np.ndarray): shape (B, C)
+        intermediate_feature (np.ndarray): shape (B, C)
+            An intermediate feature representation of a specific layer.
 
         z (np.ndarray): shape (B,)
-            Coefficients of a specific atom.
+            A final feature representation. In the original paper, these are
+            coefficients of a specific atom.
 
     Returns:
         float: An estimated value of v-information.
 
     """
-    assert feature.ndim == 2
+    assert intermediate_feature.ndim == 2
     assert z.ndim == 1
-    assert np.all(z >= 0)
 
     # specify ddof=1 to use unbiased variance.
     var_z = np.var(z, ddof=1)
 
     # estimate the coefficient of determination (R^2).
-    model = LinearRegression().fit(feature, z)
-    r2 = model.score(feature, z)
+    model = LinearRegression().fit(intermediate_feature, z)
+    r2 = model.score(intermediate_feature, z)
 
     return float((var_z * r2))
 
