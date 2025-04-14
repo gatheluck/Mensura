@@ -41,7 +41,7 @@ def compute_approximate_v_information(
 
 
 def compute_complexity_k(  # noqa: N802
-    layer_outputs: Iterable[np.ndarray],
+    intermediate_features: Iterable[np.ndarray],
     z: np.ndarray,
 ) -> float:
     """Estimate the complexity measure K for a specific atom.
@@ -49,8 +49,8 @@ def compute_complexity_k(  # noqa: N802
     In the original paper, this is defined as K(z,x) in equation (2).
 
     Args:
-        layer_outputs (list[np.ndarray]):
-            A list of layer outputs. Each element must have shape (B, C).
+        intermediate_features (list[np.ndarray]):
+            A list of intermediate features. Each element must have shape (B, C).
 
         z (np.ndarray): shape (B,)
             Coefficients of a specific atom.
@@ -64,8 +64,10 @@ def compute_complexity_k(  # noqa: N802
     v_informations = list()
 
     # TODO: use multiprocessing for parallel computation.
-    for layer_output in layer_outputs:
-        v_informations.append(compute_approximate_v_information(layer_output, z))
+    for intermediate_feature in intermediate_features:
+        v_informations.append(
+            compute_approximate_v_information(intermediate_feature, z)
+        )
 
     return 1.0 - float(np.mean(v_informations))
 
