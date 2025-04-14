@@ -1,7 +1,10 @@
-from typing import Iterable
+from typing import Iterable, cast
 
 import numpy as np
+import torch
 from sklearn.linear_model import LinearRegression
+from timm.models.resnetv2 import ResNetV2
+from torchvision.models.feature_extraction import create_feature_extractor
 
 
 def compute_approximate_v_information(
@@ -65,3 +68,28 @@ def compute_complexity_k(  # noqa: N802
         v_informations.append(compute_approximate_v_information(layer_output, z))
 
     return 1.0 - float(np.mean(v_informations))
+
+
+def get_feature_extractor(model: torch.nn.Module) -> torch.nn.Module:
+    """A utility function to get a feature extractor for a given model.
+
+    Args:
+        model (torch.nn.Module): A model to extract features from.
+
+    Returns:
+        torch.nn.Module: A feature extractor.
+
+    """
+    if isinstance(model, ResNetV2):
+        return_nodes = {
+            "stages.0": "intermediate.0",
+            "stages.1": "intermediate.1",
+            "stages.2": "intermediate.2",
+            "norm": "penultimate",
+        }
+    else:
+        raise NotImplementedError(f"Model type `{type(model)}` is not supported.")
+
+    return cast(
+        torch.nn.Module, create_feature_extractor(model, return_nodes=return_nodes)
+    )
