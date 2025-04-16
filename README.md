@@ -9,3 +9,26 @@
 ## What is Mensura?
 
 TBD
+
+## Sample Code
+
+```python
+import timm
+from mensura.v_information import compute_complexity_k, get_feature_extractor
+
+model = timm.create_model("resnetv2_50x1_bit.goog_distilled_in1k", pretrained=True).eval()
+feature_extractor = get_feature_extractor(model)
+
+# Extract features from the model
+x = torch.randn(16, 3, 224, 224)
+features = feature_extractor(x)
+
+intermediate_features = [v.flatten(1).detach().numpy() for k, v in features.items() if k != "penultimate"]
+
+z = torch.nn.functional.adaptive_avg_pool2d(features["penultimate"], (1, 1)).flatten(1).detach().numpy()
+
+for z_i in z.T:
+	# Compute complexity measure K
+	complexity_measure = compute_complexity_k(intermediate_features, z_i)
+	print(complexity_measure)
+```
