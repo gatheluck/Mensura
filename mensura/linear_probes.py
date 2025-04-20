@@ -51,7 +51,7 @@ class LinearProbes(nn.Module):
 
             if d > self.proj_dim:
                 proj = torch.randn(d, self.proj_dim) / np.sqrt(self.proj_dim)
-                self.register_buffer(f"proj_{name}", proj, persistent=False)
+                self.register_buffer(f"proj_{name}", proj, persistent=True)
 
     def forward(self, feat_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         """Runs each probe on the corresponding feature tensor.
