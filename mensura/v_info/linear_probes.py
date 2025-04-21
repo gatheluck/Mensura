@@ -76,5 +76,5 @@ class LinearProbes(nn.Module):
                 proj = getattr(self, f"proj_{name}")
                 x = x.to(proj.dtype)
                 x = x @ proj
-            outputs[name] = self.probes[name](x).squeeze(1)
+            outputs[name] = self.probes[name](x.float()).squeeze(1)
         return outputs
