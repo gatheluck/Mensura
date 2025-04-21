@@ -31,7 +31,7 @@ def evaluate_on_val(
         feats = extractor(img)
         # TODO: change this to use z_strategy
         z_index = 0
-        z = feats["layer4"].flatten(1)[:, z_index]
+        z = feats["stages_2"].flatten(1)[:, z_index]
         z_all.append(z)
 
         out = probes(feats)
@@ -58,15 +58,18 @@ def train_pipeline(
     save_dir_path: pathlib.Path,
 ):
     # build LinearProbes
+    print("Building LinearProbes...")
     with torch.no_grad():
         sample, _ = next(iter(train_loader))
         dims = {k: v.flatten(1).shape[1]
                 for k, v in extractor(sample.to(device)).items()}
     probes = LinearProbes(dims, proj_dim=proj_dim).to(device)
 
+    print("Initializing optimizer...")
     optim = torch.optim.SGD(probes.parameters(), lr=lr)
     loss_fn = torch.nn.MSELoss()
 
+    print("Training...")    
     for _ in trange(epochs, desc="epoch"):
         running = 0.0
         for img, lbl in tqdm(train_loader, desc="train", unit="batch", leave=False):
@@ -105,7 +108,7 @@ if __name__ == "__main__":
     p.add_argument("--device", default="cuda")
     p.add_argument("--proj-dim", type=int, default=4096)
     p.add_argument("--epochs", type=int, default=5)
-    p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--lr", type=float, default=5e-2)
     args = p.parse_args()
 
@@ -119,11 +122,13 @@ if __name__ == "__main__":
     device = torch.device(args.device)
 
     # prepare backbone
+    print(f"Loading model {args.model_name}...")
     backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
     return_nodes = {node_name: node_name.replace(".", "_") for node_name in args.nodes.split(",")}
     feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes)
 
     # prepare datasets
+    print("Preparing datasets...")
     config = resolve_data_config({}, model=backbone)
     transform = create_transform(**config)
     dataset_dir_path = pathlib.Path("data/imagenet")
@@ -131,6 +136,7 @@ if __name__ == "__main__":
     val_dataset = torchvision.datasets.ImageFolder(root=dataset_dir_path / "val", transform=transform)
 
     # prepare dataloaders
+    print("Preparing dataloaders...")
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
