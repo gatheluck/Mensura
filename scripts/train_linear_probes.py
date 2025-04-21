@@ -102,7 +102,7 @@ if __name__ == "__main__":
     p.add_argument("--model-name", default="resnetv2_50x1_bit.goog_distilled_in1k",
                    help="Any timm model name.")
     p.add_argument("--nodes",
-                   default="stages.0,stages.1,stages.2",
+                   default="stages.0,stages.2",
                    help="Comma separated list of FX graph node names.")
     p.add_argument("--save-dir-path", type=pathlib.Path, default="outputs/")
     p.add_argument("--device", default="cuda")
