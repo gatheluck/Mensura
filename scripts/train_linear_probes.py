@@ -5,8 +5,8 @@ import pathlib
 import numpy as np
 import timm
 import torch
-import torchvision
 from torchmetrics.functional import r2_score
+from torchvision.datasets import ImageFolder
 from torchvision.models.feature_extraction import create_feature_extractor
 from tqdm import tqdm, trange
 
@@ -85,12 +85,62 @@ def train_pipeline(
             loss.backward()
             optim.step()
             running += loss.item()
-        val_r2 = evaluate_on_val(backbone, extractor, probes, val_loader, device)
+        val_r2 = evaluate_on_val(extractor, probes, val_loader, device)
         tqdm.write(f"val mean R^2 = {val_r2:.4f}")
 
     save_dir_path.mkdir(exist_ok=True, parents=True)
     torch.save(probes.state_dict(), save_dir_path / "linear_probes.pth")
     tqdm.write(f"linear probes checkpoint saved to `{str(save_dir_path)}`")
+
+
+def make_fractional_subset(
+    dataset: torch.utils.data.Dataset,
+    fraction: float,
+    *,
+    seed: int | None = None
+) -> torch.utils.data.Subset:
+    """Return a random subset containing the given fraction of the dataset.
+
+    This uses `torch.utils.data.random_split` when available (PyTorch ≥1.13.0),
+    otherwise falls back to sampling indices manually and wrapping in `Subset`.
+
+    Args:
+        dataset: Any map-style torch.utils.data.Dataset (implements __len__).
+        fraction: Fraction of the dataset to include in the subset (0.0-1.0).
+        seed: Optional random seed for reproducibility.
+
+    Returns:
+        A torch.utils.data.Subset containing exactly floor(fraction * len(dataset))
+        samples chosen uniformly at random.
+
+    Raises:
+        ValueError: If `fraction` is not between 0 and 1.
+    """
+    total = len(dataset)
+    if not (0.0 <= fraction <= 1.0):
+        raise ValueError(f"fraction must be in [0,1], got {fraction}")
+    subset_size = int(total * fraction)
+
+    # If PyTorch supports float fractions in random_split (>=1.13.0), use it
+    try:
+        # random_split will interpret floats summing to 1.0 as fractions
+        lengths = [fraction, 1.0 - fraction]
+        if seed is not None:
+            generator = torch.Generator().manual_seed(seed)
+            subsets = torch.utils.data.random_split(dataset, lengths, generator=generator)
+        else:
+            subsets = torch.utils.data.random_split(dataset, lengths)
+        return subsets[0]  # first split is the desired fraction
+    except TypeError:
+        # Fallback for older PyTorch: manual index shuffling + Subset
+        if seed is not None:
+            gen = torch.Generator().manual_seed(seed)
+            perm = torch.randperm(total, generator=gen)
+        else:
+            perm = torch.randperm(total)
+        indices = perm[:subset_size].tolist()
+        return torch.utils.data.Subset(dataset, indices)
+
 
 if __name__ == "__main__":
     import argparse
@@ -132,8 +182,8 @@ if __name__ == "__main__":
     config = resolve_data_config({}, model=backbone)
     transform = create_transform(**config)
     dataset_dir_path = pathlib.Path("data/imagenet")
-    train_dataset = torchvision.datasets.ImageFolder(root=dataset_dir_path / "train", transform=transform)
-    val_dataset = torchvision.datasets.ImageFolder(root=dataset_dir_path / "val", transform=transform)
+    train_dataset = make_fractional_subset(ImageFolder(root=dataset_dir_path / "train", transform=transform), 1.0)
+    val_dataset = make_fractional_subset(ImageFolder(root=dataset_dir_path / "val", transform=transform), 0.1)
 
     # prepare dataloaders
     print("Preparing dataloaders...")
