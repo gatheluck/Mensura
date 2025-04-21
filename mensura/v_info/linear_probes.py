@@ -74,6 +74,7 @@ class LinearProbes(nn.Module):
             x = feat.flatten(start_dim=1)  # (B, d)
             if x.shape[1] > self.proj_dim:
                 proj = getattr(self, f"proj_{name}")
+                x = x.to(proj.dtype)
                 x = x @ proj
             outputs[name] = self.probes[name](x).squeeze(1)
         return outputs
