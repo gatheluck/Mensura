@@ -1,14 +1,23 @@
+import datetime as dt
+import json
 import pathlib
 
+import numpy as np
+import timm
 import torch
+import torchvision
+from torchmetrics.functional import r2_score
+from torchvision.models.feature_extraction import create_feature_extractor
 from tqdm import tqdm, trange
+
+from mensura.v_information import LinearProbes
 
 
 @torch.no_grad()
 def evaluate_on_val(
-    extractor: nn.Module,
-    probes: nn.Module,
-    val_loader: DataLoader,
+    extractor: torch.nn.Module,
+    probes: torch.nn.Module,
+    val_loader: torch.utils.data.DataLoader,
     device: torch.device,
 ) -> float:
     """Return mean R^2 over all probe layers on the full val set."""
@@ -39,11 +48,12 @@ def evaluate_on_val(
     return float(np.mean(r2_list))
 
 def train_pipeline(
-    extractor: nn.Module,
+    extractor: torch.nn.Module,
     proj_dim: int,
-    train_loader: DataLoader,
-    val_loader: DataLoader,
+    train_loader: torch.utils.data.DataLoader,
+    val_loader: torch.utils.data.DataLoader,
     epochs: int,
+    lr: float,
     device: torch.device,
     save_dir_path: pathlib.Path,
 ):
@@ -54,8 +64,8 @@ def train_pipeline(
                 for k, v in extractor(sample.to(device)).items()}
     probes = LinearProbes(dims, proj_dim=proj_dim).to(device)
 
-    optim = torch.optim.SGD(probes.parameters(), lr=args.lr)
-    loss_fn = nn.MSELoss()
+    optim = torch.optim.SGD(probes.parameters(), lr=lr)
+    loss_fn = torch.nn.MSELoss()
 
     for _ in trange(epochs, desc="epoch"):
         running = 0.0
@@ -66,7 +76,7 @@ def train_pipeline(
                 
                 # TODO: change this to use z_strategy
                 z_index = 0
-                z = feats["layer4"].flatten(1)[:, z_index]
+                z = feats["stages.2"].flatten(1)[:, z_index]
             optim.zero_grad()
             loss = sum(loss_fn(p, z) for p in probes(feats).values())
             loss.backward()
@@ -81,6 +91,7 @@ def train_pipeline(
 
 if __name__ == "__main__":
     import argparse
+
     from timm.data import resolve_data_config
     from timm.data.transforms_factory import create_transform
 
@@ -110,17 +121,17 @@ if __name__ == "__main__":
     # prepare backbone
     backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
     return_nodes = {node_name: node_name for node_name in args.nodes.split(",")}
-    feature_extractor = get_feature_extractor(backbone, return_nodes)
+    feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes)
 
     # prepare datasets
     config = resolve_data_config({}, model=backbone)
     transform = create_transform(**config)
     dataset_dir_path = pathlib.Path("data/imagenet")
-    train_dataset = datasets.ImageFolder(root=dataset_dir_path / "train", transform=transform)
-    val_dataset = datasets.ImageFolder(root=dataset_dir_path / "val", transform=transform)
+    train_dataset = torchvision.datasets.ImageFolder(root=dataset_dir_path / "train", transform=transform)
+    val_dataset = torchvision.datasets.ImageFolder(root=dataset_dir_path / "val", transform=transform)
 
     # prepare dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    train_pipeline(feature_extractor, args.proj_dim, train_loader, val_loader, args.epochs, device, args.save_dir_path)
+    train_pipeline(feature_extractor, args.proj_dim, train_loader, val_loader, args.epochs, args.lr, device, args.save_dir_path)
