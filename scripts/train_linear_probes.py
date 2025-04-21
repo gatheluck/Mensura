@@ -10,7 +10,7 @@ from torchmetrics.functional import r2_score
 from torchvision.models.feature_extraction import create_feature_extractor
 from tqdm import tqdm, trange
 
-from mensura.v_information import LinearProbes
+from mensura.v_info.linear_probes import LinearProbes
 
 
 @torch.no_grad()
@@ -76,7 +76,7 @@ def train_pipeline(
                 
                 # TODO: change this to use z_strategy
                 z_index = 0
-                z = feats["stages.2"].flatten(1)[:, z_index]
+                z = feats["stages_2"].flatten(1)[:, z_index]
             optim.zero_grad()
             loss = sum(loss_fn(p, z) for p in probes(feats).values())
             loss.backward()
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     p.add_argument("--device", default="cuda")
     p.add_argument("--proj-dim", type=int, default=4096)
     p.add_argument("--epochs", type=int, default=5)
-    p.add_argument("--batch-size", type=int, default=128)
+    p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--lr", type=float, default=5e-2)
     args = p.parse_args()
 
@@ -114,13 +114,13 @@ if __name__ == "__main__":
     cfg: dict = vars(args).copy()
     cfg["saved_at"] = dt.datetime.now().isoformat()
     with (args.save_dir_path / "config.json").open("w", encoding="utf-8") as fp:
-        json.dump(cfg, fp, indent=2) 
+        json.dump(cfg, fp, indent=2, default=str) 
 
     device = torch.device(args.device)
 
     # prepare backbone
     backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
-    return_nodes = {node_name: node_name for node_name in args.nodes.split(",")}
+    return_nodes = {node_name: node_name.replace(".", "_") for node_name in args.nodes.split(",")}
     feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes)
 
     # prepare datasets
