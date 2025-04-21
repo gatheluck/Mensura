@@ -21,7 +21,7 @@ RUN apt update -y && apt install --no-install-recommends -y software-properties-
     && apt-get update && apt-get install -y \
     # Install specified Python
     python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python3-pip python3-dev python-is-python3 \
-    build-essential openssl libssl-dev libffi-dev ca-certificates git curl ssh openssh-client \
+    build-essential openssl libssl-dev libffi-dev ca-certificates git curl ssh openssh-client screen \
     && update-ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
