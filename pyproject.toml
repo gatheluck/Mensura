@@ -8,6 +8,7 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "timm>=1.0.15",
     "torch>=2.6.0",
+    "torchmetrics>=1.7.1",
     "torchvision>=0.21.0",
 ]
 
@@ -79,10 +80,10 @@ unfixable = ["F401", "F841"]
 convention = "google"
 
 [tool.poe.tasks]
-ruff-format = "ruff format mensura tests"
-ruff-format-check = "ruff format --check mensura tests"
-ruff-lint = "ruff check mensura tests --fix"
-ruff-lint-check = "ruff check mensura tests"
+ruff-format = "ruff format mensura tests scripts"
+ruff-format-check = "ruff format --check mensura tests scripts"
+ruff-lint = "ruff check mensura tests scripts --fix"
+ruff-lint-check = "ruff check mensura tests scripts"
 mdformat = "mdformat *.md"
 mdformat-check = "mdformat --check *.md"
 mypy = "mypy mensura"
