@@ -50,7 +50,7 @@ class LinearProbes(nn.Module):
             self.probes[name] = nn.Linear(d_in, 1, bias=True)
 
             if d > self.proj_dim:
-                proj = torch.randn(d, self.proj_dim) / np.sqrt(self.proj_dim)
+                proj = torch.randn(d, self.proj_dim, dtype=torch.float16) / np.sqrt(self.proj_dim)
                 self.register_buffer(f"proj_{name}", proj, persistent=True)
 
     def forward(self, feat_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
