@@ -1,5 +1,6 @@
 import pathlib
 
+import numpy as np
 import timm
 import torch
 from sklearn.linear_model import Ridge
@@ -10,10 +11,13 @@ from timm.data.transforms_factory import create_transform
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import ImageFolder
 from torchvision.models.feature_extraction import create_feature_extractor
-from tqdm import tqdm
+from tqdm.contrib import tenumerate
 
 if __name__ == "__main__":
     import argparse
+
+    torch.manual_seed(0)
+    np.random.seed(0)
 
     p = argparse.ArgumentParser()
     p.add_argument("--model-name", default="resnetv2_50x1_bit.goog_distilled_in1k")
@@ -22,7 +26,7 @@ if __name__ == "__main__":
                    help="Comma separated list of FX graph node names.")
     p.add_argument("--device", default="cuda")
     p.add_argument("--num-samples", type=int, default=20000)
-    p.add_argument("--batch-size", type=int, default=64)
+    p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--ridge-alpha", type=float, default=1e-3)
     args = p.parse_args()
 
@@ -32,7 +36,7 @@ if __name__ == "__main__":
     print(f"Loading model {args.model_name}...")
     backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
     return_nodes = {node_name: node_name.replace(".", "_") for node_name in args.nodes.split(",")}
-    feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes)
+    feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes).to(device).eval()
 
     # prepare datasets
     print("Preparing datasets...")
@@ -42,32 +46,41 @@ if __name__ == "__main__":
     dataset = ImageFolder(root=dataset_dir_path / "val", transform=transform)
     subset   = Subset(dataset, torch.randperm(len(dataset))[:args.num_samples])
     loader   = DataLoader(subset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
-    print("transform", transform)
-    print("len(subset)", len(subset))
+    print("transform:", transform)
+    print("len(subset):", len(subset))
 
-    out_stage_0 = []
-    out_stage_2 = []
+    # NOTE: don't use torch.cat() to avoid memory spiking
+    with torch.no_grad():
+        x0, _ = next(iter(loader))
+        out0  = feature_extractor(x0.to(device))
+        stage0_sample = out0["stages_0"].mean((-1, -2)).cpu()   # (bsz, C0)
+        stage2_sample = out0["stages_2"].mean((-1, -2)).cpu()   # (bsz, C2)
+
+    feat0 = torch.empty((args.num_samples, stage0_sample.size(1)), dtype=torch.float32)
+    feat2 = torch.empty((args.num_samples, stage2_sample.size(1)), dtype=torch.float32)
 
     print("Extracting features...")
     with torch.no_grad():
-        for x, _ in tqdm(loader, desc="[extracting]"):
+        for i, (x, _) in tenumerate(loader, desc="[extracting]"):
+            start = i * args.batch_size
+            end = start + x.size(0)
             out = feature_extractor(x.to(device))
-            out_stage_0.append(out["stages_0"].mean((-1, -2)).cpu())
-            out_stage_2.append(out["stages_2"].flatten(1).cpu())
+            feat0[start:end] = out["stages_0"].mean((-1,-2)).cpu()
+            feat2[start:end] = out["stages_2"].mean((-1,-2)).cpu()
 
-    out_stage_0 = torch.cat(out_stage_0, 0).numpy()
-    out_stage_2 = torch.cat(out_stage_2, 0).numpy()
+    print("feat0.shape", feat0.shape)
+    print("feat2.shape", feat2.shape)
 
-    print("out_stage_0.shape", out_stage_0.shape)
-    print("out_stage_2.shape", out_stage_2.shape)
-
-    x_train, x_test, y_train, y_test = train_test_split(out_stage_0, out_stage_2, test_size=0.2, random_state=0)
+    feat0_np = feat0.numpy()
+    feat2_np = feat2.numpy()
+    x_train, x_test, y_train, y_test = train_test_split(feat0_np, feat2_np, test_size=0.2, random_state=0)
 
     print("x_train.shape", x_train.shape)
     print("x_test.shape", x_test.shape)
     print("y_train.shape", y_train.shape)
     print("y_test.shape", y_test.shape)
 
+    print("Fitting Ridge regression...")
     reg = Ridge(alpha=args.ridge_alpha, fit_intercept=True)
     reg.fit(x_train, y_train)
 
