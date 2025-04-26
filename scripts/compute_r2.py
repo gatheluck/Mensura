@@ -15,6 +15,8 @@ from torchvision.datasets import ImageFolder
 from torchvision.models.feature_extraction import create_feature_extractor
 from tqdm.contrib import tenumerate
 
+from mensura.v_info.regression import ridge_regression
+
 if __name__ == "__main__":
     import argparse
 
@@ -91,25 +93,29 @@ if __name__ == "__main__":
     feat3_np = feat3.numpy()
     feat_gp_np = feat_gp.numpy()
 
-    z_index = 100
-    x_train, x_test, y_train, y_test = train_test_split(feat3_np, feat_gp_np[:, z_index], test_size=0.2, random_state=0)
+    # z_index = 100
+    # x_train, x_test, y_train, y_test = train_test_split(feat3_np, feat_gp_np[:, z_index], test_size=0.2, random_state=0)
 
-    print("x_train.shape", x_train.shape)
-    print("x_test.shape", x_test.shape)
-    print("y_train.shape", y_train.shape)
-    print("y_test.shape", y_test.shape)
+    # print("x_train.shape", x_train.shape)
+    # print("x_test.shape", x_test.shape)
+    # print("y_train.shape", y_train.shape)
+    # print("y_test.shape", y_test.shape)
+
+    # print("Fitting Ridge regression...")
+    # if False:
+    #     # Use RidgeCV to find the best alpha
+    #     alphas = np.logspace(-3, 4, 50) # 1e-3 ~ 1e4
+    #     reg = make_pipeline(StandardScaler(with_mean=True), RidgeCV(alphas=alphas, cv=5, fit_intercept=True))
+    #     reg.fit(x_train, y_train)
+    #     print("best alpha =", reg[-1].alpha_)
+    # else:
+    #     # Use a fixed alpha
+    #     reg = make_pipeline(StandardScaler(with_mean=True), Ridge(alpha=args.ridge_alpha, fit_intercept=True))
+    #     reg.fit(x_train, y_train)
+
+    # r2 = r2_score(y_test, reg.predict(x_test), multioutput="variance_weighted")
 
     print("Fitting Ridge regression...")
-    if False:
-        # Use RidgeCV to find the best alpha
-        alphas = np.logspace(-3, 4, 50) # 1e-3 ~ 1e4
-        reg = make_pipeline(StandardScaler(with_mean=True), RidgeCV(alphas=alphas, cv=5, fit_intercept=True))
-        reg.fit(x_train, y_train)
-        print("best alpha =", reg[-1].alpha_)
-    else:
-        # Use a fixed alpha
-        reg = make_pipeline(StandardScaler(with_mean=True), Ridge(alpha=args.ridge_alpha, fit_intercept=True))
-        reg.fit(x_train, y_train)
-
-    r2 = r2_score(y_test, reg.predict(x_test), multioutput="variance_weighted")
+    z_index = 100
+    r2 = ridge_regression(feat3_np, feat_gp_np[:, z_index])
     print(f"R^2 = {r2:.4f}")
