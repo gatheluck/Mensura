@@ -1,20 +1,17 @@
 import pathlib
 
 import numpy as np
-import timm
 import torch
 from sklearn.linear_model import Ridge, RidgeCV
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from timm.data import resolve_data_config
-from timm.data.transforms_factory import create_transform
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import ImageFolder
-from torchvision.models.feature_extraction import create_feature_extractor
 from tqdm.contrib import tenumerate
 
+from mensura.v_info.feature import build_feature_extractor
 from mensura.v_info.regression import ridge_regression
 
 if __name__ == "__main__":
@@ -38,14 +35,19 @@ if __name__ == "__main__":
 
    # prepare backbone
     print(f"Loading model {args.model_name}...")
-    backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
-    return_nodes = {node_name: node_name.replace(".", "_") for node_name in args.nodes.split(",")}
-    feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes).to(device).eval()
+    feature_extractor, transform = build_feature_extractor(
+        model_name=args.model_name,
+        node_names=args.nodes.split(","),
+        device=device,
+    )
+    # backbone = timm.create_model(args.model_name, pretrained=True).eval().to(device)
+    # return_nodes = {node_name: node_name.replace(".", "_") for node_name in args.nodes.split(",")}
+    # feature_extractor = create_feature_extractor(backbone, return_nodes=return_nodes).to(device).eval()
 
     # prepare datasets
-    print("Preparing datasets...")
-    config = resolve_data_config({}, model=backbone)
-    transform = create_transform(**config)
+    # print("Preparing datasets...")
+    # config = resolve_data_config({}, model=backbone)
+    # transform = create_transform(**config)
     dataset_dir_path = pathlib.Path("data/imagenet")
     dataset = ImageFolder(root=dataset_dir_path / "val", transform=transform)
     subset   = Subset(dataset, torch.randperm(len(dataset))[:args.num_samples])
