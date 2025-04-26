@@ -28,7 +28,7 @@ def ridge_regression(
             Must be between 0 and 1. Defaults to 0.2.
         random_state (int, optional): Random seed for reproducibility. Defaults to 0.
         alpha (float, optional): Regularization strength for Ridge when `use_cv` is False.
-            Must be a positive float. Defaults to 1.0.
+            Must be a positive float. Defaults to 100.0.
         use_cv (bool, optional): Whether to perform cross-validated ridge regression
             using `RidgeCV`. If True, the `alpha` parameter is ignored. Defaults to False.
         cv_folds (int, optional): Number of folds for cross-validation when `use_cv` is True.
