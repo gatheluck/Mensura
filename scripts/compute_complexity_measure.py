@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     device = torch.device(args.device)
 
-   # prepare backbone
+    # prepare backbone
     print(f"Loading model {args.model_name}...")
     node_keys = args.nodes.split(",")
     feature_extractor, transform = build_feature_extractor(
