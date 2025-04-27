@@ -108,7 +108,7 @@ if __name__ == "__main__":
     z_all = features["head_global_pool"].numpy()
 
     # compute complexity measure K
-    complexity_mesure_output_path = output_dir_path / "complexity_measure.jsonl"
+    complexity_measure_output_path = output_dir_path / "complexity_measure.jsonl"
     with tqdm(enumerate(z_all.T), total=z_all.shape[1]) as pbar:
         for i, z in pbar:
             v_infos = OrderedDict()
