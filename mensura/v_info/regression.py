@@ -44,22 +44,27 @@ def ridge_regression(
 
     # select model
     if use_cv:
-        model = Pipeline([
-            ('scaler', StandardScaler()),
-            ('ridge_cv', RidgeCV(alphas=np.logspace(-3, 4, 50), cv=cv_folds, fit_intercept=True)),
-        ])
+        model = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                (
+                    "ridge_cv",
+                    RidgeCV(
+                        alphas=np.logspace(-3, 4, 50), cv=cv_folds, fit_intercept=True
+                    ),
+                ),
+            ]
+        )
     else:
-        model = Pipeline([
-            ('scaler', StandardScaler()),
-            ('ridge', Ridge(alpha=alpha, fit_intercept=True)),
-        ])
+        model = Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                ("ridge", Ridge(alpha=alpha, fit_intercept=True)),
+            ]
+        )
 
     # train model
     model.fit(x_train, y_train)
     # evaluate model
-    score = r2_score(
-        y_test,
-        model.predict(x_test),
-        multioutput="variance_weighted"
-    )
-    return score
+    score = r2_score(y_test, model.predict(x_test), multioutput="variance_weighted")
+    return float(score)

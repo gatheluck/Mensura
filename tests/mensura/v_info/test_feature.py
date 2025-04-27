@@ -21,12 +21,14 @@ def test_returns_correct_types() -> None:
         model_name="resnet18",
         node_keys=node_keys,
         device=torch.device("cpu"),
-        weights_path=None
+        weights_path=None,
     )
 
     # Type assertions
-    assert isinstance(feature_extractor, torch.nn.Module)  # FX extractor is a Module :contentReference[oaicite:2]{index=2}
-    assert isinstance(transform, Compose)  # Transform pipeline is Compose 
+    assert isinstance(
+        feature_extractor, torch.nn.Module
+    )  # FX extractor is a Module :contentReference[oaicite:2]{index=2}
+    assert isinstance(transform, Compose)  # Transform pipeline is Compose
 
 
 def test_feature_extractor_outputs_expected_keys() -> None:
@@ -42,21 +44,27 @@ def test_feature_extractor_outputs_expected_keys() -> None:
         model_name="resnet18",
         node_keys=node_keys,
         device=torch.device("cpu"),
-        weights_path=None
+        weights_path=None,
     )
 
     # Create and preprocess a dummy image
-    dummy_img: Image.Image = Image.new("RGB", (224, 224))  # PIL Image 
-    inp_tensor: torch.Tensor = transform(dummy_img).unsqueeze(0)  # add batch dimension 
+    dummy_img: Image.Image = Image.new("RGB", (224, 224))  # PIL Image
+    inp_tensor: torch.Tensor = transform(dummy_img).unsqueeze(0)  # add batch dimension
 
     # Extract features
     output: dict[str, torch.Tensor] = feature_extractor(inp_tensor)
 
     # Functional assertions
     expected_key: str = "layer4_0_act1"  # dot replaced by underscore :contentReference[oaicite:4]{index=4}
-    assert isinstance(output, dict)  # Output must be a dict :contentReference[oaicite:5]{index=5}
-    assert expected_key in output  # Expected key present :contentReference[oaicite:6]{index=6}
-    assert isinstance(output[expected_key], torch.Tensor)  # Value is a Tensor :contentReference[oaicite:7]{index=7}
+    assert isinstance(
+        output, dict
+    )  # Output must be a dict :contentReference[oaicite:5]{index=5}
+    assert (
+        expected_key in output
+    )  # Expected key present :contentReference[oaicite:6]{index=6}
+    assert isinstance(
+        output[expected_key], torch.Tensor
+    )  # Value is a Tensor :contentReference[oaicite:7]{index=7}
 
 
 def test_invalid_weights_path_raises_error() -> None:
@@ -73,12 +81,13 @@ def test_invalid_weights_path_raises_error() -> None:
             model_name="resnet18",
             node_keys=node_keys,
             device=torch.device("cpu"),
-            weights_path=bad_path
+            weights_path=bad_path,
         )  # Loading invalid checkpoint path should error :contentReference[oaicite:8]{index=8}
 
 
 class DummyDataset(torch.utils.data.Dataset[tuple[torch.Tensor, int]]):
     """A dataset yielding random tensors of a given shape for testing."""
+
     def __init__(self, num_samples: int, tensor_shape: tuple[int, ...]) -> None:
         """Initialize the dataset with a given number of samples and tensor shape."""
         self.num_samples = num_samples
@@ -95,6 +104,7 @@ class DummyDataset(torch.utils.data.Dataset[tuple[torch.Tensor, int]]):
 
 class StubExtractor(torch.nn.Module):
     """Feature extractor stub returning dicts with 4D and 2D tensors."""
+
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         """Simulate a spatial map and a flat feature."""
         # Simulate a spatial map and a flat feature
@@ -144,7 +154,9 @@ def test_empty_loader_raises() -> None:
     """Test that an empty DataLoader causes a ValueError."""
     empty_ds = DummyDataset(num_samples=0, tensor_shape=(3, 4, 4))
     empty_loader = torch.utils.data.DataLoader(empty_ds, batch_size=2)
-    with pytest.raises(ValueError, match="DataLoader is empty; cannot extract features."):
+    with pytest.raises(
+        ValueError, match="DataLoader is empty; cannot extract features."
+    ):
         extract_features(
             feature_extractor=StubExtractor(),
             loader=empty_loader,
@@ -166,9 +178,9 @@ def test_sample_limit_overflow_raises() -> None:
         )
 
 
-
 def test_unsupported_dim_raises() -> None:
     """Test that tensors with unsupported dims raise a ValueError."""
+
     class BadExtractor(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
             # Return a 3D tensor to trigger the error

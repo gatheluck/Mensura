@@ -54,12 +54,12 @@ def build_feature_extractor(
     return_nodes = {name: name.replace(".", "_") for name in node_keys}
 
     # Build the feature extractor
-    feature_extractor = create_feature_extractor(
-        backbone, return_nodes=return_nodes
-    ).eval().to(device)
+    feature_extractor = (
+        create_feature_extractor(backbone, return_nodes=return_nodes).eval().to(device)
+    )
 
     # Create evaluation transform
-    config = resolve_data_config({}, model=backbone)
+    config = resolve_data_config({}, model=backbone)  # type: ignore[no-untyped-call]
     transform = create_transform(**config)
 
     return feature_extractor, transform
@@ -79,14 +79,14 @@ def extract_features(
     mode to fill those buffers with flattened or pooled features.
 
     Args:
-        feature_extractor (torch.nn.Module): 
+        feature_extractor (torch.nn.Module):
             An FX GraphModule returning a dict mapping each node key
             to its activation Tensor when called.
-        loader (DataLoader): 
+        loader (DataLoader):
             Yields (input, label) pairs. Its batch_size determines slice offsets.
-        sample_limit (int): 
+        sample_limit (int):
             Total number of samples to extract; must be ≥ total samples in `loader`.
-        device (torch.device): 
+        device (torch.device):
             Device on which to perform inference (e.g., `torch.device('cuda')`).
         node_keys (list[str] | None):
             List of feature map keys to extract. If `None`, all keys from the first
@@ -102,6 +102,7 @@ def extract_features(
         ValueError: If `loader` is empty, if `sample_limit` is too small,
             or if any tensor has unsupported dimensions.
     """
+
     def _flatten_feature(tensor: torch.Tensor) -> torch.Tensor:
         """Pool 2D features or flatten 2D tensors; error on other dims.
 
@@ -123,7 +124,7 @@ def extract_features(
 
     # Warm-up to infer feature dimensions
     try:
-        first_batch, _ = next(iter(loader))  # type: ignore
+        first_batch, _ = next(iter(loader))
     except StopIteration:
         raise ValueError("DataLoader is empty; cannot extract features.") from None
 

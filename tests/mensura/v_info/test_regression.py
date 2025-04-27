@@ -13,9 +13,7 @@ def test_perfect_linear_relation() -> None:
     """
     x: np.ndarray = np.linspace(0, 1, 100).reshape(-1, 1)
     y: np.ndarray = 3 * x.flatten() + 1
-    score: float = ridge_regression(
-        x, y, test_size=0.2, random_state=42, alpha=0.0
-    )
+    score: float = ridge_regression(x, y, test_size=0.2, random_state=42, alpha=0.0)
     assert score == pytest.approx(1.0, rel=1e-6)  # rel tolerance handles FP error
 
 
