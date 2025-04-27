@@ -19,9 +19,11 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser()
     p.add_argument("--model-name", default="resnetv2_50x1_bit.goog_distilled_in1k")
-    p.add_argument("--nodes",
-                   default="stages.0,stages.1,stages.2,stages.3,head.global_pool",
-                   help="Comma separated list of FX graph node names.")
+    p.add_argument(
+        "--nodes",
+        default="stages.0,stages.1,stages.2,stages.3,head.global_pool",
+        help="Comma separated list of FX graph node names.",
+    )
     p.add_argument("--device", default="cuda")
     p.add_argument("--num-samples", type=int, default=10000)
     p.add_argument("--batch-size", type=int, default=256)
@@ -42,8 +44,14 @@ if __name__ == "__main__":
     # prepare datasets
     dataset_dir_path = pathlib.Path("data/imagenet")
     dataset = ImageFolder(root=dataset_dir_path / "val", transform=transform)
-    subset = Subset(dataset, torch.randperm(len(dataset))[:args.num_samples])
-    loader = DataLoader(subset, batch_size=args.batch_size, shuffle=False, num_workers=8, pin_memory=True)
+    subset = Subset(dataset, torch.randperm(len(dataset))[: args.num_samples])
+    loader = DataLoader(
+        subset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=8,
+        pin_memory=True,
+    )
     print("transform:", transform)
     print("len(subset):", len(subset))
 

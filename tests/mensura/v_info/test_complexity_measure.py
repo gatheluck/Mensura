@@ -12,7 +12,10 @@ def test_vinformation_computation() -> None:
     """Test that VInformation computes `value = var_z * r2` correctly."""
     vi = VInformation(var_z=3.0, r2=0.2)
     expected_value: float = 3.0 * 0.2
-    assert vi.value == pytest.approx(expected_value), "VInformation.value should be var_z * r2"
+    assert vi.value == pytest.approx(expected_value), (
+        "VInformation.value should be var_z * r2"
+    )
+
 
 def test_vinformation_is_frozen() -> None:
     """Test that VInformation is immutable (frozen dataclass).
@@ -21,6 +24,7 @@ def test_vinformation_is_frozen() -> None:
     vi = VInformation(var_z=1.5, r2=0.5)
     with pytest.raises(dataclasses.FrozenInstanceError):
         vi.var_z = 2.0  # type: ignore
+
 
 @pytest.mark.parametrize(
     ("r2_values", "expected_mean_r2"),
@@ -39,19 +43,22 @@ def test_complexity_measure_k_computation(
     """
     # Build an OrderedDict[str, VInformation] where var_z=1.0 so value == r2
     v_infos: TypingOrderedDict[str, VInformation] = OrderedDict(
-        (f"feat{i}", VInformation(var_z=1.0, r2=r2))
-        for i, r2 in enumerate(r2_values)
+        (f"feat{i}", VInformation(var_z=1.0, r2=r2)) for i, r2 in enumerate(r2_values)
     )
     cm = ComplexityMeasureK(v_infos=v_infos)
     assert cm.value == pytest.approx(1.0 - expected_mean_r2), (
         "ComplexityMeasureK.value should equal 1 - mean of VInformation.value"
     )
 
+
 def test_complexity_measure_k_empty_dict_results_in_nan() -> None:
     """Test that passing an empty OrderedDict yields cm.value == nan (no exception)."""
     empty: TypingOrderedDict[str, VInformation] = OrderedDict()
     cm = ComplexityMeasureK(v_infos=empty)
-    assert math.isnan(cm.value), "ComplexityMeasureK.value should be nan for empty input"
+    assert math.isnan(cm.value), (
+        "ComplexityMeasureK.value should be nan for empty input"
+    )
+
 
 def test_complexity_measure_k_is_frozen() -> None:
     """Test that ComplexityMeasureK is immutable (frozen dataclass).
