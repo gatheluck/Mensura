@@ -74,8 +74,8 @@ if __name__ == "__main__":
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     # dump arguments
-    argments_output_path = output_dir_path / "args.json"
-    with argments_output_path.open("w", encoding="utf-8") as f:
+    arguments_output_path = output_dir_path / "args.json"
+    with arguments_output_path.open("w", encoding="utf-8") as f:
         json.dump(vars(args), f, indent=4, default=path_converter)
 
     # prepare backbone
