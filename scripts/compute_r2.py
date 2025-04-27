@@ -54,5 +54,12 @@ if __name__ == "__main__":
 
     print("Fitting Ridge regression...")
     z_index = 100
-    r2 = ridge_regression(feat3_np, feat_gp_np[:, z_index])
+    z = feat_gp_np[:, z_index]
+    r2 = ridge_regression(feat3_np, z)
     print(f"R^2 = {r2:.4f}")
+
+    var_z = float(np.var(z, ddof=0))
+    print(f"Var(z) = {var_z:.4f}")
+
+    v_info = var_z * r2
+    print(f"v-information = {v_info:.4f}")
