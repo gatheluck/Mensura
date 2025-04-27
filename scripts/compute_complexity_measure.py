@@ -55,7 +55,7 @@ if __name__ == "__main__":
         default=pathlib.Path("outputs/compute_complexity_measure"),
     )
     p.add_argument("--device", default="cuda")
-    p.add_argument("--num-samples", type=int, default=10000)
+    p.add_argument("--num-samples", type=int, default=20000)
     p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--ridge-alpha", type=float, default=100)
     args = p.parse_args()
@@ -128,6 +128,3 @@ if __name__ == "__main__":
                 }
                 json.dump(out_dict, f, indent=4)
                 f.write("\n")
-
-            if i >= 10:
-                break
