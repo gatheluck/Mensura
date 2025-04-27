@@ -121,10 +121,10 @@ if __name__ == "__main__":
             pbar.set_postfix(complexity_measure_k=f"{complexity_measure_k.value:.4f}")
             print(f"Complexity measure K of z_{i} = {complexity_measure_k.value:.4f}")
 
-            with complexity_mesure_output_path.open("a", encoding="utf-8") as f:
+            with complexity_measure_output_path.open("a", encoding="utf-8") as f:
                 out_dict = {
                     "z_index": i,
-                    "complexity_mesure": asdict(complexity_measure_k),
+                    "complexity_measure": asdict(complexity_measure_k),
                 }
                 json.dump(out_dict, f, indent=4)
                 f.write("\n")
