@@ -49,6 +49,7 @@ if __name__ == "__main__":
         help="Comma separated list of FX graph node names.",
     )
     p.add_argument("--weights-path", type=pathlib.Path, default=None)
+    p.add_argument("--dataset-dir-path", type=pathlib.Path, default="data/imagenet/val")
     p.add_argument(
         "--output-dir-path",
         type=pathlib.Path,
@@ -89,8 +90,7 @@ if __name__ == "__main__":
     )
 
     # prepare datasets
-    dataset_dir_path = pathlib.Path("data/imagenet")
-    dataset = ImageFolder(root=dataset_dir_path / "val", transform=transform)
+    dataset = ImageFolder(root=args.dataset_dir_path, transform=transform)
     subset = Subset(dataset, torch.randperm(len(dataset))[: args.num_samples])
     loader = DataLoader(
         subset,
