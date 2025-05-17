@@ -26,7 +26,7 @@ RUN apt update -y && apt install --no-install-recommends -y software-properties-
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Swtich default python3 version
+# Switch default python3 version
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1
 
