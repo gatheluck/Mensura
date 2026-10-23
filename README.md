@@ -32,3 +32,7 @@ for z_i in z.T:
 	complexity_measure = compute_complexity_k(intermediate_features, z_i)
 	print(complexity_measure)
 ```
+
+## Security maintenance
+
+See [the 2026-10-24 dependency update](SECURITY_UPDATE_2026-10-24.md) before rebuilding environments.
