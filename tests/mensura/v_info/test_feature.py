@@ -1,6 +1,8 @@
 import pathlib
 
 import pytest
+import requests
+import timm
 import torch
 from PIL import Image
 from torchvision.transforms import Compose
@@ -8,7 +10,25 @@ from torchvision.transforms import Compose
 from mensura.v_info.feature import build_feature_extractor, extract_features
 
 
-def test_returns_correct_types() -> None:
+@pytest.fixture(autouse=True)
+def forbid_model_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep feature unit tests independent of external model downloads."""
+
+    def reject_request(*args: object, **kwargs: object) -> None:
+        raise AssertionError("Feature unit tests must not access the network")
+
+    monkeypatch.setattr(requests.sessions.Session, "request", reject_request)
+
+
+@pytest.fixture
+def local_resnet_weights(tmp_path: pathlib.Path) -> pathlib.Path:
+    """Create a real ResNet checkpoint locally without pretrained downloads."""
+    path = tmp_path / "resnet18.pth"
+    torch.save(timm.create_model("resnet18", pretrained=False).state_dict(), path)
+    return path
+
+
+def test_returns_correct_types(local_resnet_weights: pathlib.Path) -> None:
     """Test that build_feature_extractor returns a Module and a Compose transform.
 
     Uses a ResNet18 backbone (pretrained=False) and a single node name
@@ -21,7 +41,7 @@ def test_returns_correct_types() -> None:
         model_name="resnet18",
         node_keys=node_keys,
         device=torch.device("cpu"),
-        weights_path=None,
+        weights_path=local_resnet_weights,
     )
 
     # Type assertions
@@ -31,7 +51,9 @@ def test_returns_correct_types() -> None:
     assert isinstance(transform, Compose)  # Transform pipeline is Compose
 
 
-def test_feature_extractor_outputs_expected_keys() -> None:
+def test_feature_extractor_outputs_expected_keys(
+    local_resnet_weights: pathlib.Path,
+) -> None:
     """Test that the feature extractor produces a dict with sanitized node keys.
 
     Creates a dummy RGB image, applies the returned transform,
@@ -44,7 +66,7 @@ def test_feature_extractor_outputs_expected_keys() -> None:
         model_name="resnet18",
         node_keys=node_keys,
         device=torch.device("cpu"),
-        weights_path=None,
+        weights_path=local_resnet_weights,
     )
 
     # Create and preprocess a dummy image
@@ -65,6 +87,24 @@ def test_feature_extractor_outputs_expected_keys() -> None:
     assert isinstance(
         output[expected_key], torch.Tensor
     )  # Value is a Tensor :contentReference[oaicite:7]{index=7}
+
+
+def test_default_requests_pretrained_weights(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Request pretrained weights when no local checkpoint is provided."""
+    model = timm.create_model("resnet18", pretrained=False)
+    calls: list[tuple[str, bool]] = []
+
+    def create_model(model_name: str, *, pretrained: bool) -> torch.nn.Module:
+        calls.append((model_name, pretrained))
+        return model
+
+    monkeypatch.setattr(timm, "create_model", create_model)
+    extractor, transform = build_feature_extractor(
+        "resnet18", ["global_pool"], torch.device("cpu"), weights_path=None
+    )
+    assert calls == [("resnet18", True)]
+    assert isinstance(extractor, torch.nn.Module)
+    assert isinstance(transform, Compose)
 
 
 def test_invalid_weights_path_raises_error() -> None:
