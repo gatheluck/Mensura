@@ -73,3 +73,11 @@ HTTP 200 and rejected all four public G3/AAA eMudhra test hosts, with and withou
 CT. No credentials or host directories were supplied. The local Linux arm64
 result is not an executed GitHub Linux amd64 job. GPU/model-quality evaluation
 and the external pretrained download remain outside this unit-test evidence.
+
+Commands: `.venv/bin/python -m pytest tests/mensura/v_info/test_feature.py -q`
+for the network-forbidden RED; `.venv/bin/python -m pytest tests -q` for GREEN.
+Local CI image: `docker build --pull -f environments/Dockerfile --build-arg BASE_IMAGE=ubuntu:22.04 --build-arg RUN_UV_SYNC_AT_BUILD_TIME=true --build-arg PROJECT_NAME=ascender -t mensura-security-review:20261024 .`.
+Container tests used `python -m pytest tests -q -p no:cacheprovider`,
+`ruff check mensura tests scripts`, `ruff format --check mensura tests scripts`,
+`python -m mypy --cache-dir /tmp/mypy mensura` and `python -m mdformat --check *.md`.
+The latter commands used the image's `/home/challenger/.venv/bin/python` and Ruff.
