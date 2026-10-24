@@ -37,3 +37,39 @@ See the pull request for repository-specific test results and limitations.
 ## Local validation
 
 `uv run --frozen --python 3.12 pytest tests`: 18 passed, 2 failed while downloading model weights from huggingface.co due to a self-signed certificate in the TLS chain. TLS verification was not disabled. Ruff lint/format and mypy passed. `uv lock --check` passed; all non-certifi package metadata is preserved.
+
+## Draft verification follow-up (2026-10-24)
+
+The two feature tests were unit checks of extractor types and output keys but
+implicitly downloaded pretrained weights. A network-forbidden fixture first
+made both fail with an explicit assertion (2 failed / 6 passed), independently
+of the external TLS error. They now load a real, locally created ResNet18
+checkpoint, retaining their original output assertions. An additional test
+checks that the default branch requests pretrained=True. Production feature
+code is unchanged; the added default-branch test uses a model stub and is not
+a pretrained-download integration test.
+
+Local macOS: all 21 tests pass, Ruff lint/format and mypy pass. The existing
+empty-input NumPy warnings are preserved. TLS verification remains enabled;
+the live Hugging Face endpoint still fails certificate validation with both
+certifi and the repaired system CA, so that external download is not certified.
+No unverified CA was trusted and no insecure download was used.
+
+The CI compose file overrode the Dockerfile's Ubuntu 22.04 default with 20.04.
+The [deadsnakes supported distributions](https://launchpad.net/~deadsnakes/+archive/ubuntu/ppa)
+list 22.04/24.04; Python 3.12 is provided for 22.04. The override now uses 22.04.
+The unchanged Dockerfile successfully builds a separate local review image.
+The image contains pip 26.2.2 and uv 0.13.5.
+
+Linux arm64 local container: all 21 tests pass with networking disabled and a
+read-only filesystem. Ruff lint/format, mypy and mdformat checks pass. The
+Docker Desktop Documents mount was unavailable, so only non-secret test/source
+files were copied into a separate test image; host sharing settings were not
+changed. The moved venv's Python entry point was used with `python -m mypy` and
+`python -m mdformat`, avoiding its original-path script shebangs.
+
+A separate network-enabled probe inside the review container returned PyPI
+HTTP 200 and rejected all four public G3/AAA eMudhra test hosts, with and without
+CT. No credentials or host directories were supplied. The local Linux arm64
+result is not an executed GitHub Linux amd64 job. GPU/model-quality evaluation
+and the external pretrained download remain outside this unit-test evidence.
