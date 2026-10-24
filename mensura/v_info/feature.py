@@ -40,12 +40,15 @@ def build_feature_extractor(
     """
     # Initialize backbone (load custom checkpoint if provided)
     if weights_path is not None:
+        print(f"Loading custom weights from {weights_path}...")
         backbone = timm.create_model(
             model_name,
             pretrained=False,
+            num_classes=1000,
             checkpoint_path=str(weights_path),
         )
     else:
+        print(f"Loading pretrained weights for {model_name}...")
         backbone = timm.create_model(model_name, pretrained=True)
 
     backbone = backbone.eval().to(device)
@@ -59,8 +62,16 @@ def build_feature_extractor(
     )
 
     # Create evaluation transform
-    config = resolve_data_config({}, model=backbone)  # type: ignore[no-untyped-call]
-    transform = create_transform(**config)
+    # config = resolve_data_config({}, model=backbone)  # type: ignore[no-untyped-call]
+    # transform = create_transform(**config)
+    import torchvision.transforms as transforms
+
+    transform = transforms.Compose([
+        transforms.Resize(256, interpolation=2),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        ])
 
     return feature_extractor, transform
 
@@ -141,6 +152,11 @@ def extract_features(
     for key in node_keys:
         feat0 = _flatten_feature(sample_out[key])
         buffers[key] = torch.empty((sample_limit, feat0.size(1)), dtype=feat0.dtype)
+        if key == "layer4":
+            # 生テンソルのshapeでバッファ作るぞ！
+            raw_layer4_buffer = torch.empty(
+                (sample_limit, *sample_out[key].shape[1:]), dtype=sample_out[key].dtype
+            )
 
     # Fill buffers
     # NOTE: total_samples is a needed for the case drop_last=False
@@ -160,6 +176,12 @@ def extract_features(
             for key in node_keys:
                 flattened = _flatten_feature(out[key]).cpu()
                 buffers[key][start:end] = flattened
+                if key == "layer4" and raw_layer4_buffer is not None:
+                    # flattenせずに生テンソルも保存！
+                    raw_layer4_buffer[start:end] = out[key].cpu()
             total_samples = end  # update running total
+    # layer4の生テンソルも返す
+    if raw_layer4_buffer is not None:
+        buffers["layer4_raw"] = raw_layer4_buffer
 
     return buffers
